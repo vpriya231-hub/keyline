@@ -9,11 +9,10 @@ import { db } from "./server/db";
 // Use a fallback JWT Secret for security and reliability in sandbox
 const JWT_SECRET = process.env.JWT_SECRET || "keyline_super_secret_token_key_77112288";
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+const PORT = 3000;
 
-  // Body Parsing Middlewares
+// Body Parsing Middlewares
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -603,26 +602,32 @@ async function startServer() {
   });
 
   // Serve static files in production / mock client-side
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    // Serve public folder statically in standalone mode
-    app.use(express.static(path.join(process.cwd(), "public")));
-    
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
+  async function setupViteAndListen() {
+    if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
+      // Serve public folder statically in standalone mode
+      app.use(express.static(path.join(process.cwd(), "public")));
+      
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
+
+    if (!process.env.VERCEL) {
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`KeyLine server listening at http://localhost:${PORT}`);
+      });
+    }
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`KeyLine server listening at http://localhost:${PORT}`);
-  });
-}
+  setupViteAndListen();
 
-startServer();
+  export { app };
+  export default app;

@@ -31,7 +31,12 @@ import {
   UploadCloud,
   Play,
   Menu,
-  X
+  X,
+  MessageSquare,
+  Send,
+  Bot,
+  Sparkles,
+  HelpCircle
 } from "lucide-react";
 import { Application, DashboardTab, User as UserType } from "../types";
 
@@ -86,6 +91,68 @@ export default function DashboardView({ user, token, onLogout }: DashboardViewPr
   const [dragActive, setDragActive] = useState(false);
   const [localUploading, setLocalUploading] = useState(false);
   const [localUploadError, setLocalUploadError] = useState<string | null>(null);
+
+  // KeyLine AI Assistant Chat State
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: "user" | "bot"; text: string; time: string }>>([
+    {
+      sender: "bot",
+      text: "Hello! I am your KeyLine AI Assistant, specialized in server architectures, security, and storage solutions. How can I help you with your sandbox development today? Ask me about Firebase migrations, OAuth 2.0 authorization, Custom JWT signing, database structures, or official human support channels.",
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [isBotTyping, setIsBotTyping] = useState(false);
+
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, isBotTyping]);
+
+  const handleSendMessage = (textToSend?: string) => {
+    const rawText = textToSend !== undefined ? textToSend : chatInput;
+    if (!rawText || !rawText.trim()) return;
+
+    if (textToSend === undefined) {
+      setChatInput("");
+    }
+
+    const trimmed = rawText.trim();
+    const timestampStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Append user message
+    setChatMessages(prev => [...prev, { sender: "user", text: trimmed, time: timestampStr }]);
+    setIsBotTyping(true);
+
+    // Simulate an organic expert typing delay
+    setTimeout(() => {
+      const query = trimmed.toLowerCase();
+      let reply = "";
+
+      if (query.includes("firebase") || query.includes("migration") || query.includes("migrate")) {
+        reply = "🛠️ **KeyLine Firebase Migration Guide:**\n\nTo migrate your app from Firebase Firestore / Auth to KeyLine:\n\n1. **Auth Providers Setup:** Enable KeyLine Identity Hub under settings, mimicking Firebase Auth redirect handlers.\n2. **Database collections:** Import your JSON schemas directly inside KeyLine's Database workspace. KeyLine fully implements a document-oriented Firestore interface.\n3. **Client Config:** Switch your initialization scripts with our lighter `/npm` distribution package. Replace the Firebase SDK initialization code with:\n```javascript\nimport { initializeKeyLine } from '@keyline/sdk';\nconst db = initializeKeyLine({ clientId: 'YOUR_CLIENT_ID' });\n```\n\nAll security attributes map directly without restructuring standard schema queries.";
+      } else if (query.includes("oauth") || query.includes("oauth 2") || query.includes("redirect") || query.includes("callback") || query.includes("provider") || query.includes("authorize")) {
+        reply = "🔑 **OAuth 2.0 Integration Overview:**\n\nKeyLine functions as a fully federated OAuth 2.0 / OpenID Connect authorization server:\n\n- **Authorization URI:** `/auth/authorize` used with client state parameter generation to bypass visual CSRF exploits.\n- **Token endpoint:** Secured via POST query to obtain standard Bearer session wrappers.\n- **Setting Redirects:** Make sure to explicitly declare your authorized development and callback ports (e.g. `http://localhost:3000/callback`) inside the *Applications Dashboard* to prevent unauthorized token intercepts.";
+      } else if (query.includes("jwt") || query.includes("token") || query.includes("bearer") || query.includes("session")) {
+        reply = "🎫 **KeyLine Custom JWT Token Structure:**\n\nAll successful identity handshakes in KeyLine generate standard, signed JSON Web Tokens (JWT) signed with either `HS256` or `RS256` key configurations:\n\n- **Header:** Declares signing algorithms and token type attributes.\n- **Payload Claims:** Automatically packs payload metadata such as standard ID (`sub`), user email, assigned role scopes, and issuance time parameters (`iat`/`exp`).\n- **Client Verification:** All requests processed through `/api` check the header attribute `Authorization: Bearer <your_jwt_token>` for decryption and verification against active key rotation salts.";
+      } else if (query.includes("database") || query.includes("structure") || query.includes("schema") || query.includes("table") || query.includes("collection") || query.includes("drizzle")) {
+        reply = "🗄️ **KeyLine Document Database & Schema Engines:**\n\nKeyLine operates a high-capacity, document-oriented sandbox storage interface:\n\n- **No-SQL Collections & Docs:** Organize application profiles into nested structures (similar to Firestore / MongoDB models).\n- **Relational support:** Integrates relational configurations in production schemas using custom Drizzle ORM mappings, binding back to isolated SQLite or PostgreSQL instances.\n- **Real-time Synchronization:** Client connections benefit from dynamic standard WebSocket sync capabilities for active application state monitoring.";
+      } else if (query.includes("human") || query.includes("support") || query.includes("contact") || query.includes("email") || query.includes("help") || query.includes("live agent") || query.includes("critical") || query.includes("issue") || query.includes("error") || query.includes("bug")) {
+        reply = "🚨 **KeyLine Developer Support & Assistance Channels:**\n\nIf you have encountered a critical service bug, need custom service integration, or require official human technical assistance, please do not hesitate to contact our dedicated developer support team immediately at:\n\n✉️ **supportvastra@gmail.com**\n\nOur engineering team normally responds within 2 hours for sandbox testing or production issues.";
+      } else {
+        reply = "✨ **KeyLine Tech Expert Assistant:**\n\nI can assist you with your technical integrations! Here are several topics you can explore:\n- **Firebase Migration**: How to replace Firestore/Auth SDKs with KeyLine.\n- **OAuth 2.0 Configuration**: Managing application scopes, flows, and redirect URIs.\n- **JWT Structures**: Validating cryptographic key formats and bearer claims.\n- **Schema Definitions**: Directing document-based or relational database models.\n- **Human Support Channel**: Access technical feedback or contact support directly (**supportvastra@gmail.com**).";
+      }
+
+      setChatMessages(prev => [...prev, {
+        sender: "bot",
+        text: reply,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }]);
+      setIsBotTyping(false);
+    }, 850);
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -576,6 +643,73 @@ export default function DashboardView({ user, token, onLogout }: DashboardViewPr
 
   const toggleRevealSecret = (appId: string) => {
     setRevealedSecrets(prev => ({ ...prev, [appId]: !prev[appId] }));
+  };
+
+  const renderMessageText = (text: string) => {
+    const parts = text.split("\n\n");
+    return parts.map((part, partIdx) => {
+      if (part.startsWith("```")) {
+        const code = part.replace(/```[a-z]*/g, "").trim();
+        return (
+          <pre key={partIdx} className="font-mono text-[10px] bg-zinc-950 p-2.5 rounded-lg border border-zinc-800/80 overflow-x-auto text-orange-400 select-all leading-normal my-2">
+            {code}
+          </pre>
+        );
+      }
+      
+      const lines = part.split("\n");
+      return (
+        <div key={partIdx} className="space-y-1">
+          {lines.map((line, lineIdx) => {
+            let content = line;
+            
+            // Simple robust regex matching for bold elements
+            const boldRegex = /\*\*(.*?)\*\*/g;
+            const segments: React.ReactNode[] = [];
+            let lastIndex = 0;
+            let match;
+            
+            while ((match = boldRegex.exec(line)) !== null) {
+              if (match.index > lastIndex) {
+                segments.push(line.substring(lastIndex, match.index));
+              }
+              segments.push(<strong key={match.index} className="text-white font-bold">{match[1]}</strong>);
+              lastIndex = boldRegex.lastIndex;
+            }
+            
+            if (lastIndex < line.length) {
+              segments.push(line.substring(lastIndex));
+            }
+
+            if (line.startsWith("- ") || line.startsWith("• ")) {
+              return (
+                <li key={lineIdx} className="list-none pl-4 relative text-xs text-zinc-300">
+                  <span className="absolute left-1 text-orange-500">•</span>
+                  {segments.length > 0 ? segments : line.replace(/^[-•]\s+/, "")}
+                </li>
+              );
+            }
+            
+            if (/^\d+\.\s+/.test(line)) {
+              const numMatch = line.match(/^(\d+\.)\s+/);
+              const numPrefix = numMatch ? numMatch[1] : "";
+              return (
+                <p key={lineIdx} className="text-xs text-zinc-300 pl-4 relative">
+                  <span className="absolute left-0 text-orange-500 font-mono text-[10px] font-bold">{numPrefix}</span>
+                  {segments.length > 0 ? segments : line.replace(/^\d+\.\s+/, "")}
+                </p>
+              );
+            }
+
+            return (
+              <p key={lineIdx} className="text-xs text-zinc-300 leading-relaxed">
+                {segments.length > 0 ? segments : line}
+              </p>
+            );
+          })}
+        </div>
+      );
+    });
   };
 
   // First app for standard SDK snippet generation
@@ -2407,6 +2541,191 @@ console.log("Uploaded! URL is:", response.simulatedUrl);`, "storage_sdk_code")}
           </AnimatePresence>
         </div>
       </main>
+
+      {/* ========================================================================= */}
+      {/* KEYLINE AI SITE SUPPORT EXPERT ASSISTANT CO-PILOT WIDGET                 */}
+      {/* ========================================================================= */}
+      
+      {/* Floating Action Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          id="keyline-chatbot-trigger"
+          onClick={() => setChatOpen(!chatOpen)}
+          className={`relative group flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-orange-600 to-amber-500 text-[#09090b] shadow-[0_4px_20px_rgba(234,88,12,0.35)] hover:shadow-[0_4px_30px_rgba(234,88,12,0.55)] border border-orange-400/20 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer`}
+          title="Open KeyLine AI Technical Support"
+        >
+          {chatOpen ? (
+            <X className="w-6 h-6 stroke-[2.5]" />
+          ) : (
+            <>
+              <Bot className="w-6 h-6 stroke-[2]" />
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-duration-1000"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+            </>
+          )}
+          
+          {/* Subtle popover label on hover */}
+          <span className="absolute right-16 bg-zinc-900 text-zinc-100 text-[11px] font-mono font-semibold py-1.5 px-3 rounded-lg border border-zinc-800 tracking-wide pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-xl">
+            KeyLine Support AI <span className="text-orange-500">Online</span>
+          </span>
+        </button>
+      </div>
+
+      {/* Floating Chat Panel overlay */}
+      <AnimatePresence>
+        {chatOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: "spring", damping: 25, stiffness: 350 }}
+            className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-32px)] sm:w-[420px] h-[520px] max-h-[80vh] bg-[#121214] border border-zinc-800 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.6),0_0_25px_rgba(234,88,12,0.1)] flex flex-col overflow-hidden"
+          >
+            {/* Header */}
+            <div className="p-4 bg-zinc-900/90 border-b border-zinc-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+                  <Bot className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-white tracking-wide">KeyLine Core Co-Pilot</h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[9px] font-mono font-bold tracking-wider text-zinc-500 uppercase">Sandbox Mode Expert</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setChatMessages([
+                    {
+                      sender: "bot",
+                      text: "Hello! I am your KeyLine AI Assistant, specialized in server architectures, security, and storage solutions. How can I help you with your sandbox development today? Ask me about Firebase migrations, OAuth 2.0 authorization, Custom JWT signing, database structures, or official human support channels.",
+                      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    }
+                  ])}
+                  className="p-1.5 text-zinc-500 hover:text-zinc-350 rounded-md hover:bg-zinc-800 transition-colors cursor-pointer"
+                  title="Reset conversation stream"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChatOpen(false)}
+                  className="p-1.5 text-zinc-500 hover:text-rose-400 rounded-md hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Conversation Flow */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-zinc-950">
+              {chatMessages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
+                >
+                  <div
+                    className={`max-w-[85%] rounded-xl p-3 text-xs leading-relaxed ${
+                      msg.sender === "user"
+                        ? "bg-orange-500/10 border border-orange-500/20 text-orange-300 rounded-tr-none text-right"
+                        : "bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-tl-none text-left"
+                    }`}
+                  >
+                    {msg.sender === "user" ? (
+                      <p className="whitespace-pre-wrap">{msg.text}</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {renderMessageText(msg.text)}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[9px] font-mono text-zinc-600 mt-1 px-1">
+                    {msg.time}
+                  </span>
+                </div>
+              ))}
+
+              {isBotTyping && (
+                <div className="flex flex-col items-start">
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl rounded-tl-none p-3 flex items-center gap-1.5 text-xs text-zinc-500">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-orange-500" />
+                    <span>Analyzing integration guidelines...</span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Dummy container for scrolling */}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Suggested Shortcuts Container */}
+            <div className="px-4 py-2 bg-zinc-900/40 border-t border-zinc-800/50 flex flex-wrap gap-1.5 max-h-24 overflow-y-auto select-none">
+              <button
+                type="button"
+                onClick={() => handleSendMessage("How do I migrate from Firebase?")}
+                className="text-[10px] font-mono font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 hover:border-orange-500/35 hover:text-orange-400 px-2 py-1 rounded-md transition-all cursor-pointer"
+              >
+                🔥 Firebase Migration
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSendMessage("Explain OAuth 2.0 redirection flows.")}
+                className="text-[10px] font-mono font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 hover:border-orange-500/35 hover:text-orange-400 px-2 py-1 rounded-md transition-all cursor-pointer"
+              >
+                🔑 OAuth 2.0 Auth
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSendMessage("What does a KeyLine JWT payload contain?")}
+                className="text-[10px] font-mono font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 hover:border-orange-500/35 hover:text-orange-400 px-2 py-1 rounded-md transition-all cursor-pointer"
+              >
+                🎫 JWT Claims
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSendMessage("How do I get official support for a bug?")}
+                className="text-[10px] font-mono font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 hover:border-orange-500/35 hover:text-orange-400 px-2 py-1 rounded-md transition-all cursor-pointer"
+              >
+                🚨 Official Support
+              </button>
+            </div>
+
+            {/* Input Form area */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendMessage();
+              }}
+              className="p-3 bg-zinc-900 border-t border-zinc-800 flex gap-2 items-center shrink-0"
+            >
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Ask co-pilot (OAuth, Firebase migration, Contact human support...)"
+                className="flex-1 bg-zinc-950 border border-zinc-800 hover:border-zinc-700 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 rounded-lg py-1.5 px-3 text-xs text-white placeholder-zinc-500 outline-none transition-all font-sans"
+              />
+              <button
+                type="submit"
+                disabled={!chatInput.trim() || isBotTyping}
+                className="p-1.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:hover:bg-orange-600 text-[#09090b] rounded-lg transition-colors cursor-pointer flex items-center justify-center animate-duration-300"
+              >
+                <Send className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            </form>
+
+            {/* Secure Local Privacy Disclaimer */}
+            <div className="bg-zinc-950 border-t border-zinc-900/60 p-2 text-center text-[9px] font-mono font-bold tracking-wider text-zinc-600 leading-normal uppercase">
+              Note: This assistant runs locally for sandbox testing and does not collect or share your personal chat data.
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
